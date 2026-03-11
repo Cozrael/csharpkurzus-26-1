@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Inspector.Client/Inspector.Client.csproj" />
+  <Project Path="Inspector.Core/Inspector.Core.csproj" />
+  <Project Path="Inspector.HTTP/Inspector.HTTP.csproj" />
+  <Project Path="Inspector.Server/Inspector.Server.csproj" />
+  <Project Path="Inspector.Tests/Inspector.Tests.csproj" />
+</Solution>
