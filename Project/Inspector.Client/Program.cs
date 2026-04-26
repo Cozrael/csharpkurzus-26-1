@@ -6,6 +6,20 @@ public class Program
 {
     static void Main(string[] args)
     {
-        new Class1().SayHello();
+        
+        new UserTerminal().Menus();
+        
+        
+
+        Console.ReadKey();
+
+        /*Packets p = new Packets();
+        p.packetStartCapture();
+
+        Console.ReadKey();
+        p.Dispose();*/
     }
+    
+    
+    
 }
