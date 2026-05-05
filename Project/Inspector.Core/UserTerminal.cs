@@ -8,6 +8,9 @@ public class UserTerminal
 
     public void Menus()
     {
+
+       
+        
         Console.WriteLine("<< Type a menu number >>");
         Console.WriteLine("\t1: All");
         Console.WriteLine("\t2: Warrnings");
