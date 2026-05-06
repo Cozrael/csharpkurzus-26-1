@@ -8,7 +8,7 @@ public class trafficLogger : IDisposable
     
     private static DateTime _DateTimeFileName = DateTime.UtcNow;
     private static string _file = $"../../../../log{_DateTimeFileName.Year}-{_DateTimeFileName.Month}-{_DateTimeFileName.Day}-{_DateTimeFileName.Hour}.txt" ;
-    private StringBuilder _stringBuilder = new StringBuilder("");
+    private StringBuilder _stringBuilder = new StringBuilder();
     private FileStream _fileStream = new FileStream(_file,  FileMode.Append, FileAccess.Write, FileShare.Read);
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     
