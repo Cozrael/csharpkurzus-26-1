@@ -63,25 +63,39 @@ public class Interface
 
     public void InspectorMenu()
     {
-        AnsiConsole.MarkupLine($"Succesfully selected: [green]Inspector Menu[/]");
+        AnsiConsole.MarkupLine($"Successfully selected: [green]Inspector Menu[/]");
         BackMenu();
         
     }
 
     public void SettingsMenu()
     {
-        AnsiConsole.MarkupLine($"Succesfully selected: [green]Settings Menu[/]");
+
+        List<String> selectedList = new List<String>(); //Kiválasztott szabályok listája
+
+        var applyableRules = new[] { "Rule1", "Rule2", "Rule3", "Rule4", }; //Beállítható szabályok listája
         
+        AnsiConsole.MarkupLine($"Successfully selected: [green]Settings Menu[/]");
+
         var selectedRules = AnsiConsole.Prompt(
             new MultiSelectionPrompt<string>()
                 .Title("Please select which rules you would like to apply:")
-                .AddChoices("Rule1", "Rule2", "Rule3", "Rule4", "Rule5", "Rule6", "Rule7")
+                .PageSize(applyableRules.Length)
+                .AddChoices(applyableRules)
+                
+            //TODO: A listában szereplő szabályok már alapból be vannak pipálva és ki leeht őket szedni a listából.
+            //TODO: Ha a user véletlen lép be a beállításokba akkor vissza tudjon lépni a main menübe és ezzel ne változzón a jelenlegi beállítás.
+            
+            
         );
         
+        
         AnsiConsole.WriteLine("You selected: ");
+        selectedList.Clear();
         foreach (var rule in selectedRules)
         {
             AnsiConsole.MarkupLine($"- [green]{rule}[/]");
+            selectedList.Add(rule);
         }
         
         BackMenu();
