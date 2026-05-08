@@ -1,4 +1,4 @@
-using System.Net.Mime;
+using Inspector.Core.Rule;
 
 namespace Inspector.Client.UI;
 
@@ -6,13 +6,18 @@ using Spectre.Console;
 
 public class Interface
 {
+    
+    //  =================
+    //      Main Menu
+    //  =================
+    
     public void MainMenu()
     {
 
         var main_menu = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Please select a menu.")
-                .AddChoices("Main Menu","Inspector Menu", "Settings Menu", "Exit")
+                .AddChoices("Main Menu", "Inspector Menu", "Rule Menu", "Exit")
         );
 
         switch (main_menu)
@@ -25,9 +30,9 @@ public class Interface
                 AnsiConsole.Clear();
                 InspectorMenu();
                 break;
-            case "Settings Menu":
+            case "Rule Menu":
                 AnsiConsole.Clear();
-                SettingsMenu();
+                RulesMenu();
                 break;
             case "Exit":
                 AnsiConsole.Clear();
@@ -41,13 +46,17 @@ public class Interface
 
     }
 
+    //  =================
+    //      Back Menu
+    //  =================
+    
     public void BackMenu()
     {
         var back_menu = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .AddChoices("Back to Main Menu")
         );
-        
+
         switch (back_menu)
         {
             case "Back to Main Menu":
@@ -61,45 +70,73 @@ public class Interface
         }
     }
 
+    //  ======================
+    //      Inspector Menu
+    //  ======================
+
     public void InspectorMenu()
     {
         AnsiConsole.MarkupLine($"Successfully selected: [green]Inspector Menu[/]");
         BackMenu();
-        
-    }
 
-    public void SettingsMenu()
+    }
+    
+    
+    //  ===================
+    //      Rules Menu
+    //  ===================
+    
+    private List<IRule> selectedList = [new Rule1()];  //Kiválasztott szabályok listája
+
+    public void RulesMenu()
     {
 
-        List<String> selectedList = new List<String>(); //Kiválasztott szabályok listája
 
-        var applyableRules = new[] { "Rule1", "Rule2", "Rule3", "Rule4", }; //Beállítható szabályok listája
-        
-        AnsiConsole.MarkupLine($"Successfully selected: [green]Settings Menu[/]");
+        var applyableRules = new IRule[] { new Rule1(), new Rule2(), new Rule3() }; //Beállítható szabályok listája
 
-        var selectedRules = AnsiConsole.Prompt(
-            new MultiSelectionPrompt<string>()
-                .Title("Please select which rules you would like to apply:")
-                .PageSize(applyableRules.Length)
-                .AddChoices(applyableRules)
-                
-            //TODO: A listában szereplő szabályok már alapból be vannak pipálva és ki leeht őket szedni a listából.
-            //TODO: Ha a user véletlen lép be a beállításokba akkor vissza tudjon lépni a main menübe és ezzel ne változzón a jelenlegi beállítás.
-            
-            
-        );
-        
-        
-        AnsiConsole.WriteLine("You selected: ");
-        selectedList.Clear();
-        foreach (var rule in selectedRules)
+        AnsiConsole.MarkupLine($"Successfully selected: [green]Rule Menu[/]");
+
+        var selectedRules = new MultiSelectionPrompt<IRule>()
+            .Title("Modify the rules below:")
+            .PageSize(Math.Max(3, applyableRules.Length))
+            .UseConverter(rule => rule.Name)
+            .AddChoices(applyableRules);
+
+        foreach (var rule in applyableRules)
         {
-            AnsiConsole.MarkupLine($"- [green]{rule}[/]");
-            selectedList.Add(rule);
+            if (this.selectedList.Any(r => r.Name == rule.Name))
+            {
+                selectedRules.Select(rule);
+            }
+        }
+        
+        var chosenRules = AnsiConsole.Prompt(selectedRules);
+        
+        //Itt történik meg a hozzáadás
+        foreach (var rule in applyableRules)
+        {
+            if (chosenRules.Any(r => r.Name == rule.Name) && !selectedList.Any(r => r.Name == rule.Name))
+            {
+                this.selectedList.Add(rule);
+            } else if (!chosenRules.Any(r => r.Name == rule.Name) && selectedList.Any(r => r.Name == rule.Name))
+            {
+                this.selectedList.RemoveAll(r => r.Name == rule.Name);
+            }
+        }
+        
+        //Visszajelzés
+        AnsiConsole.MarkupLine("You added the following rules:");
+        foreach (var rule in chosenRules)
+        {
+            AnsiConsole.MarkupLine($"- [green]{rule.Name}[/]");
         }
         
         BackMenu();
     }
+    
+    //  =================
+    //      Exit Menu
+    //  =================
 
     public void Exit()
     {
