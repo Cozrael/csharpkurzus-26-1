@@ -1,40 +1,74 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 
 namespace Inspector.Core;
 
-public class trafficLogger : IDisposable
+public sealed class TrafficLogger : IDisposable
 {
+
+    private DateTime _DateTimeFileName;
+    private string _file;
+    private readonly StringBuilder _stringBuilder;
+    private readonly FileStream _fileStream;
+    private readonly SemaphoreSlim _semaphore;
+    private readonly TrafficStorage _ts;
+
+    public TrafficLogger(TrafficStorage trafficStorage)
+    {
+        _DateTimeFileName  = DateTime.UtcNow;
+        _file = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..","src" ,"logs",
+            $"{_DateTimeFileName.Year}-{_DateTimeFileName.Month}-{_DateTimeFileName.Day}-{_DateTimeFileName.Hour}.json");
+        _fileStream = new FileStream(_file, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
+        _stringBuilder = new StringBuilder();
+        _semaphore = new SemaphoreSlim(1, 1);
+        _ts = trafficStorage;
+    }
     
-    private static DateTime _DateTimeFileName = DateTime.UtcNow;
-    private static string _file = $"../../../../log{_DateTimeFileName.Year}-{_DateTimeFileName.Month}-{_DateTimeFileName.Day}-{_DateTimeFileName.Hour}.txt" ;
-    private StringBuilder _stringBuilder = new StringBuilder();
-    private FileStream _fileStream = new FileStream(_file,  FileMode.Append, FileAccess.Write, FileShare.Read);
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
-    
-    public async void write(string packetData)
+
+    public async Task Write(string sourceAddress, string destinationAddress, int headerLength, string protocol, int timeToLive,
+        int sourcePort, int destinationPort, string flags = null)
     {
         Debug.WriteLine("write");
         await _semaphore.WaitAsync();
         try
         {
-            _DateTimeFileName = DateTime.UtcNow;
-            _stringBuilder.Append(DateTimeOffset.Now + " :: " + packetData + "\n");
+            var packetDataJson = new PacketData
+            {
+                Time = DateTime.Now,
+                SourceAddress = sourceAddress,
+                DestinationAddress = destinationAddress,
+                HeaderLength = headerLength,
+                Protocol = protocol,
+                TimeToLive = timeToLive,
+                SourcePort = sourcePort.ToString(),
+                DestinationPort = destinationPort.ToString(),
+                Flags = flags,  
+            };
+
+            Task.Run(() => _ts.Add(packetDataJson));
+            
+            _stringBuilder.Append(JsonSerializer.Serialize(packetDataJson) + "\n");
             Debug.WriteLine("fileba írás");
 
             if (_stringBuilder.Length > 8192)
             {
-                pushToLog(_stringBuilder.ToString());
+                PushToLog(_stringBuilder.ToString());
                 _stringBuilder.Clear();
             }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
         }
         finally
         {
             _semaphore.Release();
         }
+        
     }
     
-    private void pushToLog(string stringPacket)
+    private void PushToLog(string stringPacket)
     {
         Debug.WriteLine("pushToLog");
         _fileStream.Write(new UTF8Encoding(true).GetBytes(stringPacket + "\n"));
@@ -43,7 +77,9 @@ public class trafficLogger : IDisposable
 
     public void Dispose()
     {
-        pushToLog(_stringBuilder.ToString());
+        Debug.WriteLine("Le futott a trafficLogger Dispose");
+        PushToLog(_stringBuilder.ToString());
+        _ts.MakeAndWriteSummary();
         _fileStream.Flush();
         _fileStream.Dispose();
     }
