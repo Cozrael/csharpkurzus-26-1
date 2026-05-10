@@ -86,43 +86,36 @@ public class Interface
     //      Rules Menu
     //  ===================
     
-    private List<IRule> selectedList = [new Rule1()];  //Kiválasztott szabályok listája
+    private List<IRule> activeRules = [];  //Kiválasztott szabályok listája
+    private RuleManager ruleManager = new RuleManager();
 
     public void RulesMenu()
     {
 
 
-        var applyableRules = new IRule[] { new Rule1(), new Rule2(), new Rule3() }; //Beállítható szabályok listája
+        var availableRules = new IRule[] {new RuleDefault(), new Rule1(), new Rule2(), new Rule3() }; //Beállítható szabályok listája
 
         AnsiConsole.MarkupLine($"Successfully selected: [green]Rule Menu[/]");
 
-        var selectedRules = new MultiSelectionPrompt<IRule>()
+        var rulesPrompt = new MultiSelectionPrompt<IRule>()
             .Title("Modify the rules below:")
-            .PageSize(Math.Max(3, applyableRules.Length))
+            .PageSize(Math.Max(3, availableRules.Length))
             .UseConverter(rule => rule.Name)
-            .AddChoices(applyableRules);
+            .AddChoices(availableRules);
 
-        foreach (var rule in applyableRules)
+        //Vizsgáljuk hogy benne van-e már,
+        foreach (var rule in availableRules)
         {
-            if (this.selectedList.Any(r => r.Name == rule.Name))
+            if (ruleManager.ActiveRules.Any(r => r.Name == rule.Name))
             {
-                selectedRules.Select(rule);
+                rulesPrompt.Select(rule); //Ha igen -> pipáljuk
             }
         }
         
-        var chosenRules = AnsiConsole.Prompt(selectedRules);
+        var chosenRules = AnsiConsole.Prompt(rulesPrompt);
         
         //Itt történik meg a hozzáadás
-        foreach (var rule in applyableRules)
-        {
-            if (chosenRules.Any(r => r.Name == rule.Name) && !selectedList.Any(r => r.Name == rule.Name))
-            {
-                this.selectedList.Add(rule);
-            } else if (!chosenRules.Any(r => r.Name == rule.Name) && selectedList.Any(r => r.Name == rule.Name))
-            {
-                this.selectedList.RemoveAll(r => r.Name == rule.Name);
-            }
-        }
+        ruleManager.UpdateActiveRules(availableRules, chosenRules);
         
         //Visszajelzés
         AnsiConsole.MarkupLine("You added the following rules:");

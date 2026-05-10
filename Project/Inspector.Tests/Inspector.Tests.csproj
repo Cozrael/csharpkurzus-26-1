@@ -20,4 +20,9 @@
     <Using Include="NUnit.Framework" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Inspector.Client\Inspector.Client.csproj" />
+    <ProjectReference Include="..\Inspector.Core\Inspector.Core.csproj" />
+  </ItemGroup>
+
 </Project>
