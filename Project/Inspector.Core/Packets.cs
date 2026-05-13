@@ -47,7 +47,7 @@ public sealed class Packets : IDisposable
             Console.WriteLine(pack);
             */
             if (pack == null) return;
-            var time = DateTimeOffset.Now;
+            var time = DateTime.Now;
             var ipPacket = pack.Extract<IPPacket>();
             if(ipPacket == null) return;
             var tcpPacket =  pack.Extract<TcpPacket>();

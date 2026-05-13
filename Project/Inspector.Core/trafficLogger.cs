@@ -16,7 +16,7 @@ public sealed class TrafficLogger : IDisposable
 
     public TrafficLogger(TrafficStorage trafficStorage)
     {
-        _DateTimeFileName  = DateTime.UtcNow;
+        _DateTimeFileName  = DateTime.Now;
         _file = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..","src" ,"logs",
             $"{_DateTimeFileName.Year}-{_DateTimeFileName.Month}-{_DateTimeFileName.Day}-{_DateTimeFileName.Hour}.json");
         _fileStream = new FileStream(_file, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
@@ -35,7 +35,7 @@ public sealed class TrafficLogger : IDisposable
         {
             var packetDataJson = new PacketData
             {
-                Time = DateTime.Now,
+                Time = DateTime.Now.ToString("hh:mm:ss"),
                 SourceAddress = sourceAddress,
                 DestinationAddress = destinationAddress,
                 HeaderLength = headerLength,
@@ -46,7 +46,7 @@ public sealed class TrafficLogger : IDisposable
                 Flags = flags,  
             };
 
-            Task.Run(() => _ts.Add(packetDataJson));
+            await Task.Run(() => _ts.Add(packetDataJson));
             
             _stringBuilder.Append(JsonSerializer.Serialize(packetDataJson) + "\n");
             Debug.WriteLine("fileba írás");
