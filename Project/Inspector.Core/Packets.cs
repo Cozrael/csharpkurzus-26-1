@@ -8,24 +8,24 @@ using SharpPcap.LibPcap;
 
 namespace Inspector.Core;
 
-public class Packets : IDisposable
+public sealed class Packets : IDisposable
 {
 
-    private LibPcapLiveDevice _device; 
+    private readonly LibPcapLiveDevice _device; 
     private bool _isDisposed = false;
     private int _db = 0;
+    private readonly TrafficLogger _tl;
     
-    private readonly trafficLogger tl;
-    public Packets(trafficLogger rmaker)
+    public Packets(TrafficLogger trafficLogger)
     {
-        Console.WriteLine("Constructor");
+        Debug.WriteLine("Packets Constructor");
         _device = LibPcapLiveDeviceList.Instance[0];
-        this.tl = rmaker;
+        _tl = trafficLogger;
     }
 
 
 
-    public async void packetStartCapture()
+    public async void StartCapture()
     {
         Debug.WriteLine("Start capture");
         _device.Open();
@@ -34,38 +34,68 @@ public class Packets : IDisposable
         _device.StartCapture();
     }
 
-    public void packetStopCapture()
+    public void StopCapture()
     {
         Debug.WriteLine("Stop capture");   
         _device.StopCapture();
     }
     
-    public void Device_OnPacketArrival(object s, PacketCapture e)
-    {
-        var pack = Packet.ParsePacket(e.GetPacket().LinkLayerType, e.GetPacket().Data);
-        /*
-        Console.WriteLine(pack);
-        */
-        if (pack == null) return;
-        var time = DateTimeOffset.Now;
-        var ipPacket = pack.Extract<IPPacket>();
-        if (ipPacket == null) return;
-        Console.WriteLine("--------------------------");
-        Console.WriteLine("{0} -- {1}:{2}:{3}:{4} | {5}",_db, time.Hour, time.Minute, time.Second, time.Millisecond, ipPacket);
-        try
+    private void Device_OnPacketArrival(object s, PacketCapture e)
         {
-            var packetString = ipPacket.ToString();
+            var pack = Packet.ParsePacket(e.GetPacket().LinkLayerType, e.GetPacket().Data);
+            /*
+            Console.WriteLine(pack);
+            */
+            if (pack == null) return;
+            var time = DateTime.Now;
+            var ipPacket = pack.Extract<IPPacket>();
+            if(ipPacket == null) return;
+            var tcpPacket =  pack.Extract<TcpPacket>();
+            var udpPacket = pack.Extract<UdpPacket>();
+            
 
-            Task.Run(() => tl.write(packetString));
-            _db++;
+            switch (ipPacket.Protocol.ToString())
+            {
+                case "Tcp":
+                    {
+                        string flags = tcpPacket.Flags.ToString();
+                        try
+                        {
+                            Task.Run(() => _tl.Write(ipPacket.SourceAddress.ToString(), ipPacket.DestinationAddress.ToString(), ipPacket.HeaderLength,
+                                ipPacket.Protocol.ToString(), ipPacket.TimeToLive, tcpPacket.SourcePort, tcpPacket.DestinationPort, flags));
+                            _db++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine(ex);
+                        }
+                        break;
+                    }
+                case "Udp":
+                    {
+                        try
+                        {
+                            Task.Run(() => _tl.Write(ipPacket.SourceAddress.ToString(), ipPacket.DestinationAddress.ToString(), ipPacket.HeaderLength, 
+                                ipPacket.Protocol.ToString(), ipPacket.TimeToLive, udpPacket.SourcePort, udpPacket.DestinationPort));
+                            _db++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine(ex);
+                        }
+                        break;
+                    }
+                default:
+                    Debug.WriteLine("Unkown protocol:" +  ipPacket.Protocol);
+                    return;
+            }
+
+
+            /*Console.WriteLine("{0} -- {1}:{2}:{3}:{4} | {5}",_db, time.Hour, time.Minute, time.Second, time.Millisecond, ipPacket);
+            Console.WriteLine("--------------------------");*/
+
+
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(ex);
-        }
-
-
-    }
     
     public void Dispose()
     {
@@ -74,6 +104,7 @@ public class Packets : IDisposable
             _device.StopCapture();
             _device.Close();
             _isDisposed = true;
+            Debug.WriteLine("Lefutott a Packets Dispose");
         }  
     }
 }
