@@ -6,10 +6,12 @@ namespace Inspector.Core;
 public class ReadSummarys
 {
     private readonly string _path;
+    private readonly BlackList _blackList;
 
     public ReadSummarys()
     {
         _path = Path.Combine(AppContext.BaseDirectory,"..", "..", "..", "..", "src", "summary");
+        
     }
 
     public string[] ListAllSummaries()
@@ -33,6 +35,12 @@ public class ReadSummarys
             res.Add(JsonSerializer.Deserialize<PacketData>(line));
         }
         return res;
+    }
+
+    public List<PacketData> GetPotentialDangerIPs(List<PacketData> summaryPackets)
+    {
+        var potentailDanger = from pack in summaryPackets where pack.PotentialDanger == true select pack;
+        return potentailDanger.ToList();
     }
 
 }

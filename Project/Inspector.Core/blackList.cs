@@ -16,7 +16,8 @@ public sealed class BlackList
         _file = new List<string>()
         {
             "feodotrackerBotNetBlackList.txt",
-            "SpamhausBlackList.txt"
+            "SpamhausBlackList.txt",
+            "testerBlackList.txt",
         };
         
         for (int i = 0; i < _file.Count(); i++)
