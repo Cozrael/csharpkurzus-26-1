@@ -9,15 +9,19 @@ public sealed class TrafficStorage
     
     private readonly SemaphoreSlim _semaphore;
 
-    private readonly BlackList _bl;
+    private readonly BlackList _blackList;
 
-    private readonly TrafficLogger _tl;
+    private readonly TrafficLogger _trafficLogger;
 
+    private readonly StringBuilder _stringBuilder;
+    
+    
     public TrafficStorage(BlackList blackList)
     {
         _packets = new HashSet<PacketData>();
         _semaphore = new SemaphoreSlim(1, 1);
-        _bl = blackList;
+        _blackList = blackList;
+        _stringBuilder = new StringBuilder();
     }
     
     public async Task Add(PacketData packet)
@@ -28,10 +32,13 @@ public sealed class TrafficStorage
             var packetContain = _packets.FirstOrDefault(ip => packet.Similar(ip));
             if (packetContain == null)
             {
-                packet.PotentialDanger = (_bl.IPCheck(packet.SourceAddress));
+                packet.PotentialDanger = (_blackList.IPCheck(packet.SourceAddress));
+                if (packet.PotentialDanger) packet.PotentialDangerMessage = "BLACKLIST IP";
+                // rule 1
+                // rule 2
                 if (packet.PotentialDanger)
                 {
-                    Console.WriteLine("Danger!!!");
+                    Console.WriteLine("Danger!!!"); // alert helye
                 }
                 _packets.Add(packet);
             }
@@ -42,35 +49,45 @@ public sealed class TrafficStorage
         }
         finally
         {
+                   
             _semaphore.Release();
         }
     }
 
+    public List<PacketData> getCurrentPotentialDanger()
+    {
+        var potentailDanger = from pack in _packets where pack.PotentialDanger == true select pack;
+        return potentailDanger.ToList();
+    }
+    
+
     public void MakeAndWriteSummary()
     {
-        DateTime DateTimeFileName  = DateTime.Now;
-        int db = 0;
+            DateTime DateTimeFileName  = DateTime.Now;
+            int db = 0;
 
-        StringBuilder sb = new StringBuilder();
-        foreach (var packet in _packets)
-        {
-            sb.AppendLine(JsonSerializer.Serialize(packet));
-        }
 
-        string file;
-        while (true)
-        {
-            file = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..","src" ,"summary",
-                $"{DateTimeFileName.Year}-{DateTimeFileName.Month}-{DateTimeFileName.Day}-{DateTimeFileName.Hour}({db})-summary.json");
-            if (File.Exists(file)) db++;
-            else
+            foreach (var packet in _packets)
             {
-                break;
+                _stringBuilder.AppendLine(JsonSerializer.Serialize(packet));
             }
-        }
+
+            string file;
+            while (true)
+            {
+                file = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..","src" ,"summary",
+                    $"{DateTimeFileName.Year}-{DateTimeFileName.Month}-{DateTimeFileName.Day}-{DateTimeFileName.Hour}({db})-summary.json");
+                if (File.Exists(file)) db++;
+                else
+                {
+                    break;
+                }
+            }
         
-        FileStream fileStream = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
-        fileStream.Write(new UTF8Encoding(true).GetBytes(sb + "\n"));
-        fileStream.Flush();
+            FileStream fileStream = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
+            fileStream.Write(new UTF8Encoding(true).GetBytes(_stringBuilder.ToString()));
+            fileStream.Flush();
+
     }
+    
 }

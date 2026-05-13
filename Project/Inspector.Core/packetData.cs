@@ -16,6 +16,7 @@ public sealed class PacketData
     public string Flags { get; set; }
 
     public Boolean PotentialDanger { get; set; }
+    public string PotentialDangerMessage { get; set; }
     public int Count { get; set; } = 1;
 
 
