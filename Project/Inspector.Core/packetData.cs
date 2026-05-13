@@ -4,7 +4,7 @@ namespace Inspector.Core;
 
 public sealed class PacketData
 {
-    public DateTime Time { get; set; }
+    public string Time { get; set; }
     public string SourceAddress { get; set; }
     public string DestinationAddress { get; set; }
     public int HeaderLength { get; set; }
