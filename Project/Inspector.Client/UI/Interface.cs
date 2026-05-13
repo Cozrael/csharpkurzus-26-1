@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 using Inspector.Core.Rule;
 
 namespace Inspector.Client.UI;
@@ -77,7 +79,42 @@ public class Interface
     public void InspectorMenu()
     {
         AnsiConsole.MarkupLine($"Successfully selected: [green]Inspector Menu[/]");
+
+        var sensedDummies = new[] //Teszt adatok
+        {
+            ("12:01:03", "192.168.1.105:4231", "TCP",  "Blacklist hit"),
+            ("12:01:07", "10.0.0.44:80", "TCP", "SYN Flood"),
+            ("12:01:09", "185.220.101.3:443",  "TCP", "Blacklist hit"),
+            ("12:01:12", "192.168.1.1:53", "UDP", "Port Scan"),
+            ("12:01:15", "172.16.0.2:8080", "TCP", "SYN Flood"),
+        }; //TODO: Valós adatok tömbje
+
+        var table = new Table()
+            .AddColumn("Id")
+            .AddColumn("Time")
+            .AddColumn("Source IP:Port")
+            .AddColumn("Protocol")
+            .AddColumn("Reason");
+
+        AnsiConsole.Live(table)
+            .Overflow(VerticalOverflow.Crop)
+            .Start(ctx =>
+            {
+                var id = 1;
+                
+                foreach (var (time, sourceIp, protocol, reason) in sensedDummies)
+                {
+                    table.AddRow(id++.ToString(), time, sourceIp, protocol, reason);
+                    ctx.Refresh();
+                    Thread.Sleep(new Random().Next(500, 2000)); //Szimuláljuk hogy úgymond random időbe jönnek az alertek
+                }
+                //TODO: Valós alertek kiírása
+                
+            });
+
+        /*
         BackMenu();
+        */
 
     }
     
@@ -100,8 +137,10 @@ public class Interface
         var rulesPrompt = new MultiSelectionPrompt<IRule>()
             .Title("Modify the rules below:")
             .PageSize(Math.Max(3, availableRules.Length))
+            .NotRequired()
             .UseConverter(rule => rule.Name)
             .AddChoices(availableRules);
+            
 
         //Vizsgáljuk hogy benne van-e már,
         foreach (var rule in availableRules)
@@ -110,6 +149,7 @@ public class Interface
             {
                 rulesPrompt.Select(rule); //Ha igen -> pipáljuk
             }
+            
         }
         
         var chosenRules = AnsiConsole.Prompt(rulesPrompt);

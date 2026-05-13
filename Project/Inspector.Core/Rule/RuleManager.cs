@@ -17,6 +17,10 @@ public class RuleManager
             {
                 this._activeRules.RemoveAll(r => r.Name == rule.Name);
             }
+            else if (chosenRules.Count() == 0) //Ha nincs a listába akkor bele kerül az alap beállítás
+            {
+                this._activeRules.Add(new RuleDefault());
+            }
         }
     }
     
