@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json;
 
 namespace Inspector.Core;
 
@@ -26,5 +27,11 @@ public sealed class PacketData
             return true;
         }
         return false;
+    }
+
+    public override string ToString()
+    {
+        string res = JsonSerializer.Serialize(this);
+        return res;
     }
 }
