@@ -130,7 +130,7 @@ public class Interface
     {
 
 
-        var availableRules = new IRule[] {new RuleDefault(), new Rule1(), new Rule2(), new Rule3() }; //Beállítható szabályok listája
+        var availableRules = new IRule[] {new RuleBlacklist(), new RuleSynFlood(), new RulePortScanDetector(), new RuleIcmpFlood() }; //Beállítható szabályok listája
 
         AnsiConsole.MarkupLine($"Successfully selected: [green]Rule Menu[/]");
 
