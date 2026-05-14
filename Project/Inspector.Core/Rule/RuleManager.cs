@@ -2,7 +2,7 @@ namespace Inspector.Core.Rule;
 
 public class RuleManager
 {
-    private List<IRule> _activeRules = [new RuleDefault()];
+    private List<IRule> _activeRules = [new RuleBlacklist()];
     
     public IReadOnlyList<IRule> ActiveRules => _activeRules;
 
@@ -19,7 +19,7 @@ public class RuleManager
             }
             else if (chosenRules.Count() == 0) //Ha nincs a listába akkor bele kerül az alap beállítás
             {
-                this._activeRules.Add(new RuleDefault());
+                this._activeRules.Add(new RuleBlacklist());
             }
         }
     }
