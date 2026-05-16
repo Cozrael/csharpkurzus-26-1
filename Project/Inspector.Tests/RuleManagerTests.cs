@@ -2,7 +2,7 @@
 
 namespace Inspector.Tests;
 
-public class InterfaceTest
+public class RuleManagerTests
 {
     private class TestRule : IRule
     {

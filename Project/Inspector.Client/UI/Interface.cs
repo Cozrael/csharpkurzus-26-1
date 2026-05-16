@@ -1,5 +1,6 @@
 using System.ComponentModel;
 
+using Inspector.Core;
 using Inspector.Core.Rule;
 
 namespace Inspector.Client.UI;
@@ -87,7 +88,11 @@ public class Interface
             ("12:01:09", "185.220.101.3:443",  "TCP", "Blacklist hit"),
             ("12:01:12", "192.168.1.1:53", "UDP", "Port Scan"),
             ("12:01:15", "172.16.0.2:8080", "TCP", "SYN Flood"),
-        }; //TODO: Valós adatok tombje.
+        }; 
+        //TODO: Valós adatok tombje;
+
+       
+        
 
         var table = new Table()
             .AddColumn("Id")
