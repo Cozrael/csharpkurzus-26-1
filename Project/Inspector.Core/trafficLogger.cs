@@ -6,23 +6,28 @@ namespace Inspector.Core;
 
 public sealed class TrafficLogger : IDisposable
 {
-
     private DateTime _DateTimeFileName;
     private string _file;
     private readonly StringBuilder _stringBuilder;
+    private List<PacketData> _buffer;
     private readonly FileStream _fileStream;
     private readonly SemaphoreSlim _semaphore;
     private readonly TrafficStorage _ts;
+    private readonly BlackList _blackList;
+    private readonly RuleEngine _ruleEngine;
 
-    public TrafficLogger(TrafficStorage trafficStorage)
+    public TrafficLogger(TrafficStorage trafficStorage, BlackList blackList)
     {
         _DateTimeFileName  = DateTime.Now;
         _file = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..","src" ,"logs",
             $"{_DateTimeFileName.Year}-{_DateTimeFileName.Month}-{_DateTimeFileName.Day}-{_DateTimeFileName.Hour}.json");
-        _fileStream = new FileStream(_file, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
+        _fileStream = new FileStream(_file, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
         _stringBuilder = new StringBuilder();
+        _buffer = new List<PacketData>();
         _semaphore = new SemaphoreSlim(1, 1);
         _ts = trafficStorage;
+        _blackList = blackList;
+        _ruleEngine = new RuleEngine();
     }
     
 
@@ -30,23 +35,33 @@ public sealed class TrafficLogger : IDisposable
         int sourcePort, int destinationPort, string flags = null)
     {
         Debug.WriteLine("write");
+        
+        var packetDataJson = new PacketData
+        {
+            Time = DateTime.Now.ToString("HH:mm:ss"),
+            SourceAddress = sourceAddress,
+            DestinationAddress = destinationAddress,
+            HeaderLength = headerLength,
+            Protocol = protocol,
+            TimeToLive = timeToLive,
+            SourcePort = sourcePort.ToString(),
+            DestinationPort = destinationPort.ToString(),
+            Flags = flags,  
+        };
+        
+        
         await _semaphore.WaitAsync();
         try
         {
-            var packetDataJson = new PacketData
-            {
-                Time = DateTime.Now.ToString("hh:mm:ss"),
-                SourceAddress = sourceAddress,
-                DestinationAddress = destinationAddress,
-                HeaderLength = headerLength,
-                Protocol = protocol,
-                TimeToLive = timeToLive,
-                SourcePort = sourcePort.ToString(),
-                DestinationPort = destinationPort.ToString(),
-                Flags = flags,  
-            };
+            _buffer.Add(packetDataJson);
+            
+            packetDataJson.PotentialDanger =  _blackList.IPCheck(packetDataJson.SourceAddress);
+            if (packetDataJson.PotentialDanger) packetDataJson.PotentialDangerMessage = "BLACKLIST IP";
+            _ruleEngine.PortScanDetect(ref _buffer);
+            _ruleEngine.IsRule2On(ref _buffer);
+            _ruleEngine.HeaderLengthCheck(ref packetDataJson);
 
-            await Task.Run(() => _ts.Add(packetDataJson));
+            _ts.Add(packetDataJson);
             
             _stringBuilder.Append(JsonSerializer.Serialize(packetDataJson) + "\n");
             Debug.WriteLine("fileba írás");
@@ -55,6 +70,7 @@ public sealed class TrafficLogger : IDisposable
             {
                 PushToLog(_stringBuilder.ToString());
                 _stringBuilder.Clear();
+                if(_buffer.Count > 1000) _buffer.Clear();
             }
         }
         catch (Exception ex)

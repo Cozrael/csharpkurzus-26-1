@@ -19,7 +19,16 @@ public sealed class Packets : IDisposable
     public Packets(TrafficLogger trafficLogger)
     {
         Debug.WriteLine("Packets Constructor");
-        _device = LibPcapLiveDeviceList.Instance[0];
+        try
+        {
+            _device = LibPcapLiveDeviceList.Instance[0];
+
+        }
+        catch (PcapException pcapException)
+        {
+            Console.WriteLine("Nincs wifi interface");
+            Console.WriteLine("Error:" + pcapException.Message);
+        }
         _tl = trafficLogger;
     }
 
@@ -28,10 +37,17 @@ public sealed class Packets : IDisposable
     public async void StartCapture()
     {
         Debug.WriteLine("Start capture");
-        _device.Open();
-        _device.OnPacketArrival += Device_OnPacketArrival;
-        
-        _device.StartCapture();
+        try
+        {
+            _device.Open();
+            _device.OnPacketArrival += Device_OnPacketArrival;
+
+            _device.StartCapture();
+        }
+        catch (PcapException pcapException)
+        {
+            throw new UnauthorizedAccessException("Nincs engedély a wifi interface eléréséhez!: " + pcapException.Message);
+        }
     }
 
     public void StopCapture()
@@ -43,9 +59,6 @@ public sealed class Packets : IDisposable
     private void Device_OnPacketArrival(object s, PacketCapture e)
         {
             var pack = Packet.ParsePacket(e.GetPacket().LinkLayerType, e.GetPacket().Data);
-            /*
-            Console.WriteLine(pack);
-            */
             if (pack == null) return;
             var time = DateTime.Now;
             var ipPacket = pack.Extract<IPPacket>();
@@ -87,14 +100,19 @@ public sealed class Packets : IDisposable
                     }
                 default:
                     Debug.WriteLine("Unkown protocol:" +  ipPacket.Protocol);
-                    return;
+                    try
+                    {
+                        Task.Run(() => _tl.Write(ipPacket.SourceAddress.ToString(), ipPacket.DestinationAddress.ToString(), ipPacket.HeaderLength, 
+                            ipPacket.Protocol.ToString(), ipPacket.TimeToLive, udpPacket.SourcePort, udpPacket.DestinationPort));
+                        _db++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine(ex);
+                    }
+
+                    break;
             }
-
-
-            /*Console.WriteLine("{0} -- {1}:{2}:{3}:{4} | {5}",_db, time.Hour, time.Minute, time.Second, time.Millisecond, ipPacket);
-            Console.WriteLine("--------------------------");*/
-
-
         }
     
     public void Dispose()
