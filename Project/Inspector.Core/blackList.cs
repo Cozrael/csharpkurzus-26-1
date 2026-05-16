@@ -43,7 +43,6 @@ public sealed class BlackList
                 }
             }
         }
-
     }
 
 
@@ -52,6 +51,11 @@ public sealed class BlackList
         var ipCheckQuery = from i in _blackList
             where i.Contains(IPAddress.Parse(ip))
             select i;
-        return ipCheckQuery.Count() > 0;
+        if (ipCheckQuery.Count() > 0)
+        {
+            Debug.WriteLine("Danger!!!");
+            return true;
+        }
+        return false;
     }
 }

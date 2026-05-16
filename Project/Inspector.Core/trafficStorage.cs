@@ -9,52 +9,46 @@ public sealed class TrafficStorage
     
     private readonly SemaphoreSlim _semaphore;
 
-    private readonly BlackList _blackList;
-
     private readonly TrafficLogger _trafficLogger;
 
     private readonly StringBuilder _stringBuilder;
     
-    
-    public TrafficStorage(BlackList blackList)
+    public TrafficStorage()
     {
         _packets = new HashSet<PacketData>();
         _semaphore = new SemaphoreSlim(1, 1);
-        _blackList = blackList;
         _stringBuilder = new StringBuilder();
     }
     
     public async Task Add(PacketData packet)
     {
         await _semaphore.WaitAsync();
-        try
-        {
-            var packetContain = _packets.FirstOrDefault(ip => packet.Similar(ip));
-            if (packetContain == null)
+            try
             {
-                packet.PotentialDanger = (_blackList.IPCheck(packet.SourceAddress));
-                if (packet.PotentialDanger) packet.PotentialDangerMessage = "BLACKLIST IP";
-                // rule 1
-                // rule 2
-                if (packet.PotentialDanger)
+                var packetContain = _packets.FirstOrDefault(ipP => packet.Similar(ipP));
+                if (packetContain == null)
                 {
-                    Console.WriteLine("Danger!!!"); // alert helye
+                    _packets.Add(packet);
                 }
-                _packets.Add(packet);
+                else
+                {
+                    if (packet.PotentialDanger)
+                    {
+                        packetContain.PotentialDanger = true;
+                        packetContain.PotentialDangerMessage = packet.PotentialDangerMessage;
+                    }
+                    packetContain.Count += 1;
+                }
             }
-            else
+            finally
             {
-                packetContain.Count += 1;
-            }
-        }
-        finally
-        {
                    
-            _semaphore.Release();
-        }
+                _semaphore.Release();
+            }
+
     }
 
-    public List<PacketData> getCurrentPotentialDanger()
+    public List<PacketData> GetCurrentPotentialDanger()
     {
         var potentailDanger = from pack in _packets where pack.PotentialDanger == true select pack;
         return potentailDanger.ToList();
@@ -65,7 +59,6 @@ public sealed class TrafficStorage
     {
             DateTime DateTimeFileName  = DateTime.Now;
             int db = 0;
-
 
             foreach (var packet in _packets)
             {
@@ -84,8 +77,9 @@ public sealed class TrafficStorage
                 }
             }
         
-            FileStream fileStream = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
+            using FileStream fileStream = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
             fileStream.Write(new UTF8Encoding(true).GetBytes(_stringBuilder.ToString()));
+            _stringBuilder.Clear();
             fileStream.Flush();
 
     }
