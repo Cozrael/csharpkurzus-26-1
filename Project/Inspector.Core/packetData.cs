@@ -23,7 +23,7 @@ public sealed class PacketData
     public bool Similar(PacketData packet)
     {
         if (SourceAddress == packet.SourceAddress && DestinationAddress == packet.DestinationAddress &&
-            SourcePort == packet.SourcePort && DestinationPort == packet.DestinationPort && Protocol == packet.Protocol)
+            SourcePort == packet.SourcePort && DestinationPort == packet.DestinationPort && Protocol == packet.Protocol && HeaderLength == packet.HeaderLength)
         {
             return true;
         }
