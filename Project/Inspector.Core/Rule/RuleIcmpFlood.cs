@@ -1,8 +1,8 @@
 namespace Inspector.Core.Rule;
 
-public class Rule2 : IRule 
+public class RuleIcmpFlood : IRule
 {
-    public string Name => "Rule2";
+    public string Name => "ICMP Flood";
     public void Apply()
     {
         throw new NotImplementedException();

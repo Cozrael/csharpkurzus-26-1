@@ -1,8 +1,8 @@
 namespace Inspector.Core.Rule;
 
-public class Rule3 : IRule
+public class RulePortScanDetector : IRule 
 {
-    public string Name => "Rule3";
+    public string Name => "Port Scan Detector";
     public void Apply()
     {
         throw new NotImplementedException();

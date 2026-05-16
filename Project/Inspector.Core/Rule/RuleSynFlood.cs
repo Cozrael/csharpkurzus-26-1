@@ -1,8 +1,8 @@
 namespace Inspector.Core.Rule;
 
-public class RuleDefault : IRule 
+public class RuleSynFlood : IRule 
 {
-    public string Name => "Default";
+    public string Name => "SYN Flood";
     public void Apply()
     {
         throw new NotImplementedException();

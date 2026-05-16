@@ -1,4 +1,6 @@
-﻿using Inspector.Client.UI;
+using System.Diagnostics;
+
+using SharpPcap;
 
 namespace Inspector.Client;
 
@@ -6,31 +8,31 @@ using Inspector.Core;
 
 public class Program
 {
+    private static readonly BlackList _blackList = new BlackList();
+    private static readonly TrafficStorage _trafficStorage = new TrafficStorage(_blackList);
+
+    private static readonly TrafficLogger _trafficLogger = new TrafficLogger(_trafficStorage);
+    private static readonly Packets _PacketCapture = new Packets(_trafficLogger);
     static void Main(string[] args)
     {
+        ReadSummarys summary = new ReadSummarys();
 
-        new Interface().MainMenu();
+        string[] test = summary.ListAllSummaries();
         
-        
-        
-        Console.ReadKey();
-        
+        foreach(string i in test)
+        {
+            Console.WriteLine(i);
+        }
 
-
-
-        /*new UserTerminal().Menus();
-
-
-
-        Console.ReadKey();*/
-
-        /*Packets p = new Packets();
-        p.packetStartCapture();
-
-        Console.ReadKey();
-        p.Dispose();*/
+        var b = summary.ReadSummary(test[0]);
+        foreach (var i  in b)
+        {
+            Console.WriteLine(i);
+        }
+        _PacketCapture.StartCapture();
+        Console.ReadLine();
+        _PacketCapture.StopCapture();
+        _PacketCapture.Dispose();
+        _trafficLogger.Dispose();
     }
-    
-    
-    
 }
