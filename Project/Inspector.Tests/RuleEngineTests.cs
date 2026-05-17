@@ -13,7 +13,6 @@ public class RuleEngineTests
     [SetUp]
     public void Setup()
     {
-        
         _synSuspiciousPackets =
         [
             new PacketData { SourceAddress = "192.168.1.1", Flags = "2" }, // SYN flag
