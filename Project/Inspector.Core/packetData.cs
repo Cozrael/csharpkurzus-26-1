@@ -14,7 +14,6 @@ public sealed class PacketData
     public string SourcePort { get; set; }
     public string DestinationPort { get; set; }
     public string Flags { get; set; }
-
     public Boolean PotentialDanger { get; set; }
     public string PotentialDangerMessage { get; set; }
     public int Count { get; set; } = 1;

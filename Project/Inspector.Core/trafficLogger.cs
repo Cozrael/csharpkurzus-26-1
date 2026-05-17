@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
+using Inspector.Core.Rule;
+
 namespace Inspector.Core;
 
 public sealed class TrafficLogger : IDisposable
@@ -55,8 +57,8 @@ public sealed class TrafficLogger : IDisposable
         {
             _buffer.Add(packetDataJson);
             
-            packetDataJson.PotentialDanger =  _blackList.IPCheck(packetDataJson.SourceAddress);
-            if (packetDataJson.PotentialDanger) packetDataJson.PotentialDangerMessage = "BLACKLIST IP";
+            packetDataJson.PotentialDanger = _blackList.IPCheck(packetDataJson.SourceAddress);
+            if (packetDataJson.PotentialDanger) packetDataJson.PotentialDangerMessage = PotentionDangerMsg.BLACKLISTED.ToString();
             _ruleEngine.PortScanDetect(ref _buffer);
             _ruleEngine.IsRule2On(ref _buffer);
             _ruleEngine.HeaderLengthCheck(ref packetDataJson);

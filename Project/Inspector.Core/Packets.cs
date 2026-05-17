@@ -10,7 +10,6 @@ namespace Inspector.Core;
 
 public sealed class Packets : IDisposable
 {
-
     private readonly LibPcapLiveDevice _device; 
     private bool _isDisposed = false;
     private int _db = 0;
@@ -60,7 +59,6 @@ public sealed class Packets : IDisposable
         {
             var pack = Packet.ParsePacket(e.GetPacket().LinkLayerType, e.GetPacket().Data);
             if (pack == null) return;
-            var time = DateTime.Now;
             var ipPacket = pack.Extract<IPPacket>();
             if(ipPacket == null) return;
             var tcpPacket =  pack.Extract<TcpPacket>();
