@@ -3,6 +3,8 @@ using System.ComponentModel;
 using Inspector.Core;
 using Inspector.Core.Rule;
 
+using PacketDotNet;
+
 namespace Inspector.Client.UI;
 
 using Spectre.Console;
@@ -10,17 +12,31 @@ using Spectre.Console;
 public class Interface
 {
     
+    private static readonly RuleEngine _ruleEngine = new RuleEngine();
+    private static readonly BlackList _blackList = new BlackList();
+    private static readonly TrafficStorage _trafficStorage = new TrafficStorage();
+
+    private static readonly TrafficLogger _trafficLogger = new TrafficLogger(_trafficStorage, _blackList, _ruleEngine);
+    private static readonly Packets _PacketCapture = new Packets(_trafficLogger);
+    
+
+    
     //  =================
     //      Main Menu
     //  =================
     
     public void MainMenu()
     {
+        _PacketCapture.StartCapture();
+        
+
+        
+
 
         var main_menu = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Please select a menu.")
-                .AddChoices("Main Menu", "Inspector Menu", "Rule Menu", "Exit")
+                .AddChoices("Main Menu", "Inspector Menu", "Rule Menu", "Summeries Menu", "Exit")
         );
 
         switch (main_menu)
@@ -40,6 +56,10 @@ public class Interface
             case "Exit":
                 AnsiConsole.Clear();
                 Exit();
+                break;
+            case "Summeries Menu":
+                AnsiConsole.Clear();
+                Summeries();
                 break;
             default:
                 AnsiConsole.Clear();
@@ -79,19 +99,14 @@ public class Interface
 
     public void InspectorMenu()
     {
+        
+
+        
         AnsiConsole.MarkupLine($"Successfully selected: [green]Inspector Menu[/]");
 
-        var sensedDummies = new[] //Teszt adatok
-        {
-            ("12:01:03", "192.168.1.105:4231", "TCP",  "Blacklist hit"),
-            ("12:01:07", "10.0.0.44:80", "TCP", "SYN Flood"),
-            ("12:01:09", "185.220.101.3:443",  "TCP", "Blacklist hit"),
-            ("12:01:12", "192.168.1.1:53", "UDP", "Port Scan"),
-            ("12:01:15", "172.16.0.2:8080", "TCP", "SYN Flood"),
-        }; 
-        //TODO: Valós adatok tombje;
 
-       
+        //TODO: Valós adatok tombje;
+        var currentDanger = _trafficStorage.GetCurrentPotentialDanger();
         
 
         var table = new Table()
@@ -101,25 +116,61 @@ public class Interface
             .AddColumn("Protocol")
             .AddColumn("Reason");
 
+        bool exitRequested = false;
+
+        var keyListener = Task.Run(() =>
+        {
+            while (!exitRequested)
+            {
+                if (Console.KeyAvailable)
+                {
+                    var key = Console.ReadKey(intercept: true);
+                    if (key.Key == ConsoleKey.Spacebar)
+                        exitRequested = true;
+                }
+                Thread.Sleep(500);
+            }
+        });
+        
+        AnsiConsole.MarkupLine("Press [blue]SPACE[/] to stop!");
+        
         AnsiConsole.Live(table)
-            .Overflow(VerticalOverflow.Crop)
+            .Overflow(VerticalOverflow.Visible)
             .Start(ctx =>
             {
-                var id = 1;
                 
-                foreach (var (time, sourceIp, protocol, reason) in sensedDummies)
+                var id = 1;
+                var shown = new HashSet<int>(); 
+
+                while (!exitRequested)
                 {
-                    table.AddRow(id++.ToString(), time, sourceIp, protocol, reason);
-                    ctx.Refresh();
-                    Thread.Sleep(new Random().Next(500, 2000)); //Szimuláljuk hogy úgymond random időbe jönnek az alertek
+                    var currentDanger = _trafficStorage.GetCurrentPotentialDanger(); 
+
+                    foreach (var packet in currentDanger)
+                    {
+                        int hash = packet.GetHashCode();
+                        if (shown.Contains(hash)) continue; 
+
+                        shown.Add(hash);
+                        table.AddRow(
+                            $"[maroon]{id++.ToString()}[/]",
+                            $"[maroon]{packet.Time ?? "-"}[/]",
+                            $"[maroon]{packet.SourceAddress}:{packet.SourcePort}[/]",
+                            $"[maroon]{packet.Protocol ?? "-"}[/]",
+                            $"[red]{packet.PotentialDangerMessage ?? "-"}[/]"
+                        );
+                        ctx.Refresh();
+                    }
+
+                    Thread.Sleep(1000);
+                    
                 }
-                //TODO: Valós alertek kiírása
+                
                 
             });
 
-        /*
+        exitRequested = true;
         BackMenu();
-        */
 
     }
     
@@ -135,7 +186,7 @@ public class Interface
     {
 
 
-        var availableRules = new IRule[] {new RuleBlacklist(), new RuleSynFlood(), new RulePortScanDetector(), new RuleIcmpFlood() }; //Beállítható szabályok listája
+        var availableRules = new IRule[] {new RuleSynFlood(), new RulePortScanDetector(), new RuleHeaderLenght() }; //Beállítható szabályok listája
 
         AnsiConsole.MarkupLine($"Successfully selected: [green]Rule Menu[/]");
 
@@ -156,11 +207,16 @@ public class Interface
             }
             
         }
+
+
         
         var chosenRules = AnsiConsole.Prompt(rulesPrompt);
         
         //Itt történik meg a hozzáadás
         ruleManager.UpdateActiveRules(availableRules, chosenRules);
+        
+
+            
         
         //Visszajelzés
         AnsiConsole.MarkupLine("You added the following rules:");
@@ -168,6 +224,101 @@ public class Interface
         {
             AnsiConsole.MarkupLine($"- [green]{rule.Name}[/]");
         }
+        
+        if (chosenRules.Any(r => r.Name == "Header Lenght"))
+        {
+            _ruleEngine.headLengthOn = true;
+        }
+        else
+        {
+            _ruleEngine.headLengthOn = false;
+        }
+        
+        if (chosenRules.Any(r => r.Name == "SYN Flood"))
+        {
+            _ruleEngine.synAckOn = true;
+        }
+        else
+        {
+            _ruleEngine.synAckOn = false;
+        }
+        
+        if (chosenRules.Any(r => r.Name == "Port Scan Detector"))
+        {
+            _ruleEngine.portScanOn = true;
+        }
+        else
+        {
+            _ruleEngine.portScanOn = false;
+        }
+        
+        BackMenu();
+    }
+
+    public void Summeries()
+    {
+        AnsiConsole.MarkupLine($"Successfully selected: [green]Summeries[/]");
+        
+        ReadSummarys summary = new ReadSummarys();
+
+        string[] files = summary.ListAllSummaries();
+
+        if (files.Length == 0 ||  files == null)
+        {
+            AnsiConsole.MarkupLine($"[red]No Summaries![/]");
+            BackMenu();
+        }
+        
+        var selectedFile = AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("Choose a Summary to read!")
+                .AddChoices(files)
+        );
+        
+        List<PacketData> packets = summary.ReadSummary(selectedFile);
+
+        if (packets.Count == 0 || packets == null)
+        {
+            AnsiConsole.MarkupLine($"[red]No Packets![/]");
+        }
+
+        var table = new Table();
+        table.AddColumn("Source IP");
+        table.AddColumn("Destination IP");
+        table.AddColumn("Flag");
+        table.AddColumn("Potential Danger");
+        table.AddColumn("Reason");
+
+
+        AnsiConsole.Live(table)
+            .Overflow(VerticalOverflow.Ellipsis)
+            .Start(ctx =>
+            {
+                foreach (var packet in packets)
+                {
+                    
+                    table.AddRow(
+                        $"[cyan]{packet.SourceAddress ?? "-"}[/]",
+                        $"[cyan]{packet.DestinationAddress ?? "-"}[/]",
+                        $"[cyan]{packet.Flags ?? "No Flag"}[/]",
+                        packet.PotentialDanger ? "[red]Yes[/]" : "[green]No[/]",
+                        $"[cyan]{packet.PotentialDangerMessage ?? "-"}[/]"
+                    );
+
+                    ctx.Refresh();
+                    /*
+                    Thread.Sleep(200); 
+                */
+                }
+            });
+
+        var dangerous = summary.GetPotentialDangerIPs(packets);
+        if (dangerous.Count > 0)
+        {
+            AnsiConsole.MarkupLine($"\n[red]Potential danger packets: {dangerous.Count}[/]");
+        }
+        
+
         
         BackMenu();
     }
@@ -178,6 +329,10 @@ public class Interface
 
     public void Exit()
     {
+        _PacketCapture.StopCapture();
+        _PacketCapture.Dispose();
+        _trafficLogger.Dispose();
+        
         AnsiConsole.MarkupLine($"Application is closing. [yellow]See ya![/]");
         Environment.Exit(0);
     }

@@ -18,7 +18,7 @@ public sealed class TrafficLogger : IDisposable
     private readonly BlackList _blackList;
     private readonly RuleEngine _ruleEngine;
 
-    public TrafficLogger(TrafficStorage trafficStorage, BlackList blackList)
+    public TrafficLogger(TrafficStorage trafficStorage, BlackList blackList, RuleEngine ruleEngine)
     {
         _DateTimeFileName  = DateTime.Now;
         _file = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..","src" ,"logs",
@@ -29,7 +29,7 @@ public sealed class TrafficLogger : IDisposable
         _semaphore = new SemaphoreSlim(1, 1);
         _ts = trafficStorage;
         _blackList = blackList;
-        _ruleEngine = new RuleEngine();
+        _ruleEngine = ruleEngine;
     }
     
 
@@ -60,10 +60,10 @@ public sealed class TrafficLogger : IDisposable
             packetDataJson.PotentialDanger = _blackList.IPCheck(packetDataJson.SourceAddress);
             if (packetDataJson.PotentialDanger) packetDataJson.PotentialDangerMessage = PotentionDangerMsg.BLACKLISTED.ToString();
             _ruleEngine.PortScanDetect(ref _buffer);
-            _ruleEngine.IsRule2On(ref _buffer);
+            _ruleEngine.SynFloodDetect(ref _buffer);
             _ruleEngine.HeaderLengthCheck(ref packetDataJson);
 
-            _ts.Add(packetDataJson);
+            await _ts.Add(packetDataJson);
             
             _stringBuilder.Append(JsonSerializer.Serialize(packetDataJson) + "\n");
             Debug.WriteLine("fileba írás");

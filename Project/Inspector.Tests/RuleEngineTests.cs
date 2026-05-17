@@ -8,11 +8,12 @@ public class RuleEngineTests
     private List<PacketData> _notSynSuspiciousPackets;
     private List<PacketData> _emptyPackets;
     private List<PacketData> _ackBeforeSynPackets;
-    private ruleEngine _ruleEngine;
+    private RuleEngine _ruleEngine;
 
     [SetUp]
     public void Setup()
     {
+        
         _synSuspiciousPackets =
         [
             new PacketData { SourceAddress = "192.168.1.1", Flags = "2" }, // SYN flag
@@ -37,14 +38,15 @@ public class RuleEngineTests
             new PacketData { SourceAddress = "192.168.1.1", Flags = "4"} //Nem ACK
         ];
         
-        _ruleEngine = new ruleEngine();
+        _ruleEngine = new RuleEngine();
+        _ruleEngine.synAckOn = true;
     }
 
     [Test]
     //Az eset, amikor a SYN-hez nem tartozik ACK
     public void IsRule2On_NotFoundAck()
     {
-        bool itMustBeTrue = _ruleEngine.IsRule2On(ref _synSuspiciousPackets);
+        bool itMustBeTrue = _ruleEngine.SynFloodDetect(ref _synSuspiciousPackets);
         Assert.That(itMustBeTrue, Is.True);
     }
     
@@ -53,7 +55,7 @@ public class RuleEngineTests
     //Az eset, amikor találunk SYN hez ACK párt
     public void IsRule2On_FoundAck()
     {
-        bool itMustBeFalse = _ruleEngine.IsRule2On(ref _notSynSuspiciousPackets);
+        bool itMustBeFalse = _ruleEngine.SynFloodDetect(ref _notSynSuspiciousPackets);
         Assert.That(itMustBeFalse, Is.False);
     }
 
@@ -61,7 +63,7 @@ public class RuleEngineTests
     //Az eset, amikor üres lista van
     public void IsRule2On_EmptyPackets()
     {
-        bool itMustBeFalse = _ruleEngine.IsRule2On(ref _emptyPackets);
+        bool itMustBeFalse = _ruleEngine.SynFloodDetect(ref _emptyPackets);
         Assert.That(itMustBeFalse, Is.False);
     }
 
@@ -69,7 +71,7 @@ public class RuleEngineTests
     //Az eset, amikor az ACK hamarabb van mint a SYN
     public void IsRule2On_AckBeforeSynPacket()
     {
-        bool itMustBeTrue = _ruleEngine.IsRule2On(ref _ackBeforeSynPackets);
+        bool itMustBeTrue = _ruleEngine.SynFloodDetect(ref _ackBeforeSynPackets);
         Assert.That(itMustBeTrue, Is.True);
     }
 }
