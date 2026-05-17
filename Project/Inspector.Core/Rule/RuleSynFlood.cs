@@ -5,6 +5,7 @@ public class RuleSynFlood : IRule
     public string Name => "SYN Flood";
     public void Apply()
     {
-        throw new NotImplementedException();
+        
+
     }
 }

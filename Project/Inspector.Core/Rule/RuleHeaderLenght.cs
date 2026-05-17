@@ -1,8 +1,8 @@
 namespace Inspector.Core.Rule;
 
-public class RuleIcmpFlood : IRule
+public class RuleHeaderLenght : IRule
 {
-    public string Name => "ICMP Flood";
+    public string Name => "Header Length";
     public void Apply()
     {
         throw new NotImplementedException();

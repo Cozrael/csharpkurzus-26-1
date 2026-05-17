@@ -14,6 +14,7 @@ public class RuleEngine
     
     public RuleEngine() { }
 
+
     public bool PortScanDetect(ref List<PacketData> rawPackets)
     {
         if (portScanOn)
@@ -63,36 +64,42 @@ public class RuleEngine
     }
 
     // syn - ack
-    public bool IsRule2On(ref List<PacketData> packets)
+    public bool SynFloodDetect(ref List<PacketData> packets)
     {
-        List<String> suspiciousList = new List<String>();
-        List<PacketData> synFloodList = new List<PacketData>();
-        int id = 1;
-        int vizsgaloId = 0;
-
-        foreach (var packet in packets)
+        if (synAckOn)
         {
-            id++;
-            if (packet.Flags == "2" && !suspiciousList.Contains(packet.SourceAddress)) // 2 -> csak SYN
+            List<String> suspiciousList = new List<String>();
+            List<PacketData> synFloodList = new List<PacketData>();
+            int id = 1;
+            int vizsgaloId = 0;
+
+            foreach (var packet in packets)
             {
-                suspiciousList.Add(packet.SourceAddress);
-                vizsgaloId = id - 1;
-                for (int i = vizsgaloId; i < packets.Count; i++)
+                id++;
+                if (packet.Flags == "2" && !suspiciousList.Contains(packet.SourceAddress)) // 2 -> csak SYN
                 {
-                    if (suspiciousList.Contains(packets[i].SourceAddress) //ha megegyezik az eltárolt listában szereplő IP a vizsgált csomag IP-jével 
-                        && packets[i].Flags != "16") //és a flagje nem 16, avagy csak ACK
+                    suspiciousList.Add(packet.SourceAddress);
+                    vizsgaloId = id - 1;
+                    for (int i = vizsgaloId; i < packets.Count; i++)
                     {
-                        synFloodList.Add(packets[i]); //akkor hozzá adjuk a fixen veszélyes csomagokat tároló listába
+                        if (suspiciousList.Contains(packets[i].SourceAddress) //ha megegyezik az eltárolt listában szereplő IP a vizsgált csomag IP-jével 
+                            && packets[i].Flags != "16") //és a flagje nem 16, avagy csak ACK
+                        {
+                            synFloodList.Add(packets[i]); //akkor hozzá adjuk a fixen veszélyes csomagokat tároló listába
+                            packets[i].PotentialDanger = true;
+                            packets[i].PotentialDangerMessage = PotentionDangerMsg.SynFlood.ToString();
+                            Debug.WriteLine("Danger!!!");
+                            return true;
+                        }
                     }
                 }
             }
-        }
 
-        if (synFloodList.Count > 0)
-        {
-            return  true;
+            if (synFloodList.Count > 0)
+            {
+                return  true;
+            }
         }
-
         return false;
     }
 
