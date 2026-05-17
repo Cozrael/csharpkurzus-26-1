@@ -6,7 +6,7 @@ namespace Inspector.Core;
 public sealed class TrafficStorage
 {
     private HashSet<PacketData> _packets;
-    
+
     private readonly SemaphoreSlim _semaphore;
 
     private readonly TrafficLogger _trafficLogger;
@@ -19,6 +19,8 @@ public sealed class TrafficStorage
         _semaphore = new SemaphoreSlim(1, 1);
         _stringBuilder = new StringBuilder();
     }
+
+    public HashSet<PacketData> GetPackets() { return _packets; }
     
     public async Task Add(PacketData packet)
     {

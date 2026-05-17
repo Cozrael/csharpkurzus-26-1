@@ -16,7 +16,6 @@ public class ReadSummarys
 
     public string[] ListAllSummaries()
     {
-        Console.WriteLine("Az aktuális összefoglaló nem elérhető"); // szinezni kell!!!
         try
         {
             string[] files = Directory.GetFiles(_path);
@@ -45,7 +44,7 @@ public class ReadSummarys
         try
         {
             List<PacketData> res = new List<PacketData>();
-            StreamReader streamReader = new StreamReader(Path.Combine(_path, file));
+            using StreamReader streamReader = new StreamReader(Path.Combine(_path, file));
             while (!streamReader.EndOfStream)
             {
                 string line = streamReader.ReadLine();
